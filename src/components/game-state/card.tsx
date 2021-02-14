@@ -1,88 +1,100 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CardInfoService } from '../../services/cardInfoSvc';
 
 import cardBack from '../../assets/mtg-card-back.png';
-import Draggable, { ControlPosition, DraggableData } from 'react-draggable';
+import Draggable, { ControlPosition } from 'react-draggable';
 import { cancelablePromise } from '../../utilities/helpers';
-import { CardInfo } from '../../services/dbSvc';
 import { ZoneCardInfo } from './zone';
+import { CardInfo } from '../../services/dbSvc';
+import { ZoneName } from './gameLayout';
 
-export interface DragInfo {
+export interface CardActionInfo {
     card: CardInfo;
     node: Element;
-    sourceZone?: string;
-    targetZone?: string;
+    sourceZone: ZoneName;
+    targetZone?: ZoneName;
 }
 
 interface CardProps {
-    info: ZoneCardInfo;
+    zoneCard: ZoneCardInfo;
     faceDown?: boolean;
-    enablePreview?: boolean;
-    onDragStart: CardDragStartEventHandler;
-    onDragStop: CardDragStopEventHandler;
+    onDrag: CardActionEventHandler;
+    onDragStop: CardActionEventHandler;
+    onMouseEnter: CardActionEventHandler;
+    onMouseLeave: CardActionEventHandler;
 }
 
-export type CardDragStartEventHandler = (drag: DragInfo) => boolean;
-export type CardDragStopEventHandler = () => boolean;
+export type CardActionEventHandler = (action: CardActionInfo) => boolean;
 
-export const Card = ({ info, faceDown, enablePreview, onDragStart, onDragStop }: CardProps) => {
-    const { card, x, y } = info;
-
+export const Card = ({ 
+    zoneCard, faceDown, onDrag, onDragStop, onMouseEnter, onMouseLeave 
+}: CardProps) => {
     const [imageUrl, setImageUrl] = useState('');
     const [manualDragPos, setManualDragPos] = useState<ControlPosition>();
 
+    const nodeRef = useRef<HTMLDivElement>(null);
+
+    const { card, x, y, tapped, zIndex, previewing } = zoneCard;
     const isLoading = !imageUrl && !faceDown;
+    const faceUpAndLoaded = !isLoading && !faceDown;
 
     useEffect(() => {
         const { promise, cancel } = cancelablePromise(CardInfoService.getCardImageUrl(card));
-        promise.then(url => setImageUrl(url)).catch(() => {});
+        promise.then(url => setImageUrl(url)).catch(() => { });
         return cancel;
     }, [card]);
 
-    const getStyling = () => {
-        const imageUrlToUse = (isLoading || faceDown) ? cardBack : imageUrl;
-        const round = (n?: number) => n ? Math.round(n) : 0;
-        return {
-            backgroundImage: `url(${imageUrlToUse})`,
-            transform: `translate(${round(x)}px, ${round(y)}px)`,
-        };
-    };
+    const createAction = () => ({ 
+        card, 
+        node: nodeRef.current!.firstElementChild!, 
+        sourceZone: ZoneName.None 
+    });
 
-    const getClasses = () => {
-        const faceUpAndLoaded = !isLoading && !faceDown;
-        return 'card' +
-            (isLoading ? ' loading' : '') +
-            (faceUpAndLoaded && enablePreview ? ' enable-preview' : '') +
-            (faceUpAndLoaded && card.foil ? ' foil' : '');
-    };
-
-    const fireDragStart = (_: any, data: DraggableData) => {
+    const fireDrag = () => {
         setManualDragPos(undefined);
-        const success = onDragStart({ card, node: data.node.firstElementChild! });
+        const success = onDrag(createAction());
         if (!success) return false;
     };
 
     const fireDragStop = () => {
-        if (!onDragStop()) setManualDragPos({ x: 0, y: 0 });
-        // Don't let react-draggable update since the card was dragged to a new 
-        // zone.
-        else return false; 
+        if (!onDragStop(createAction())) setManualDragPos({ x: 0, y: 0 });
+        // Don't let react-draggable update since the card was dragged to a new zone.
+        else return false;
     };
 
-    const nodeRef = React.useRef(null);
+    const round = (n?: number) => n ? Math.round(n) : 0;
+    const positionStyle = { transform: `translate(${round(x)}px, ${round(y)}px)` };
+    const imageStyle = { 
+        backgroundImage: `url(${(isLoading || faceDown) ? cardBack : imageUrl})` 
+    };
+    const className = (
+        'card' +
+        (isLoading ? ' loading' : '') +
+        (faceUpAndLoaded && previewing ? ' previewing' : '') +
+        (faceUpAndLoaded && card.foil ? ' foil' : '') +
+        (tapped ? ' tapped' : '')
+    );
     return (
         <Draggable
             nodeRef={nodeRef}
-            onStart={fireDragStart}
+            defaultClassName='card-drag-layer'
+            onDrag={fireDrag}
             onStop={fireDragStop}
             position={manualDragPos}
         >
-            <div ref={nodeRef}>
-                <div className={getClasses()} style={getStyling()}>
-                    {isLoading ?
-                        <div className='loader' /> :
-                        <div className='card-face' />
-                    }
+            <div ref={nodeRef} style={{ zIndex }}>
+                <div className='card-position-layer' style={positionStyle}>
+                    <div 
+                        className={className} 
+                        style={imageStyle}
+                        onMouseEnter={() => onMouseEnter(createAction())}
+                        onMouseLeave={() => onMouseLeave(createAction())}
+                    >
+                        {isLoading ?
+                            <div className='loader' /> :
+                            <div className='card-face' />
+                        }
+                    </div>
                 </div>
             </div>
         </Draggable>

@@ -5,6 +5,12 @@ export interface CardInfo {
     name: string;
     set: string;
     foil: boolean;
+    commander: boolean;
+}
+
+export interface DeckInfo {
+    mainboard: CardInfo[];
+    commanders: CardInfo[];
 }
 
 const dbName = 'lets-go-fishing-db';
@@ -18,7 +24,7 @@ interface FishingSchema extends DBSchema {
 
     'decks-os': {
         key: string;
-        value: CardInfo[];
+        value: DeckInfo;
     };
 }
 
@@ -49,8 +55,8 @@ class DbSvc {
         return decks.length ? decks[0] : null;
     }
 
-    async putDeck(cardList: CardInfo[], name: string) {
-        return (await dbPromise).put(StoreNames.Deck, cardList, name);
+    async putDeck(deckInfo: DeckInfo, name: string) {
+        return (await dbPromise).put(StoreNames.Deck, deckInfo, name);
     }
 }
 

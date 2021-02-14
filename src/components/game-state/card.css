@@ -1,4 +1,4 @@
-.react-draggable {
+.card-drag-layer {
     width: var(--card-width);
     height: var(--card-height);
     display: inline-block;
@@ -8,14 +8,18 @@
     pointer-events: none;
 }
 
-.react-draggable-dragging {
-    z-index: 1;
+.card-position-layer {
+    width: inherit;
+    height: inherit;
+    display: inherit;
+    position: inherit;
 }
 
 .card {
-    width: var(--card-width);
-    height: var(--card-height);
-    display: inline-block;
+    width: inherit;
+    height: inherit;
+    display: inherit;
+    position: inherit;
     box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.5);
     border-bottom-left-radius: 4.75% 3.5%;
     border-bottom-right-radius: 4.75% 3.5%;
@@ -23,22 +27,24 @@
     border-top-right-radius: 4.75% 3.5%;
     background-size: contain;
     background-blend-mode: darken;
-    position: absolute;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.15s;
     pointer-events: all;
 }
 
 .card.loading, 
-.react-draggable:not(.react-draggable-dragging) .card:hover, 
-.react-draggable:not(.react-draggable-dragging) .card:not(.enable-preview):hover .card-face
+.card-drag-layer:not(.react-draggable-dragging) .card:hover, 
+.card-drag-layer:not(.react-draggable-dragging) .card:not(.previewing):hover .card-face
 {
     background-color: rgba(0, 0, 0, 0.5);
+}
+
+.card.tapped {
+    transform: rotate(90deg);
 }
 
 .card.foil .card-face::after {
     position: absolute;
     content: "";
-    overflow: hidden;
     border-radius: 4.75% / 3.5%;
     background-image: linear-gradient(
         to bottom, 
@@ -57,31 +63,40 @@
     animation-iteration-count: infinite;
 }
 
+.card.tapped.foil .card-face::after {
+    transform: rotate(45deg);
+    animation-direction: reverse;
+}
+
 .card .card-face {
-    overflow: hidden;
     width: inherit;
     height: inherit;
     display: inherit;
+    position: inherit;
     background-image: inherit;
     background-size: inherit;
     background-blend-mode: inherit;
     border-radius: inherit;
-    position: absolute;
-    transition: background-color 0.2s, transform 0.15s;
+    overflow: hidden;
+    transition: background-color 0.2s, transform 0.2s;
     pointer-events: none;
 }
 
-#hand .card {
-    transition: background-color 0.2s, transform 0.1s;
+.stack-zone .card-position-layer {
+    transition: transform 0.1s;
     animation: fadeIn 0.15s;
 }
 
-#hand .card .card-face {
+.stack-zone:not(.show-top-only) .card .card-face {
     animation: slideIn 0.15s;
 }
 
-.react-draggable:not(.react-draggable-dragging) .card.enable-preview:hover .card-face {
+.card-drag-layer:not(.react-draggable-dragging) .card.previewing:hover .card-face {
     transform: translate(0, -100%);
+}
+
+.stack-zone.vertical .card-drag-layer:not(.react-draggable-dragging) .card.previewing:hover .card-face {
+    transform: translate(-100%, 0);
 }
 
 .loader {

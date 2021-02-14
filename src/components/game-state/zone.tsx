@@ -1,60 +1,71 @@
-import { ForwardedRef, forwardRef, RefObject, useEffect, useState } from "react";
+import { ForwardedRef, forwardRef } from "react";
 import { CardInfo } from "../../services/dbSvc";
-import { Card, CardDragStartEventHandler, CardDragStopEventHandler, DragInfo } from "./card";
+import { Card, CardActionEventHandler, CardActionInfo } from "./card";
+import { ZoneName } from "./gameLayout";
 
 export interface ZoneCardInfo {
     card: CardInfo;
     x?: number;
     y?: number;
+    tapped?: boolean;
+    zIndex?: number;
+    previewing?: boolean;
 }
 
 export interface ZoneProps {
-    name: string;
+    name: ZoneName;
     contents: ZoneCardInfo[];
+    classesToAppend?: string;
     faceDown?: boolean;
-    enablePreview?: boolean;
-    drag?: DragInfo;
-    onCardDragStart: CardDragStartEventHandler;
-    onCardDragStop: CardDragStopEventHandler;
+    action?: CardActionInfo;
+    onCardDrag?: CardActionEventHandler;
+    onCardDragStop?: CardActionEventHandler;
+    onCardMouseEnter?: CardActionEventHandler;
+    onCardMouseLeave?: CardActionEventHandler;
 }
 
-export const useRect = (nodeRef: RefObject<HTMLElement>) => {
-    const [rect, setRect] = useState<DOMRect>(new DOMRect());
-    useEffect(() => {
-        const updateRect = () => setRect(nodeRef.current!.getBoundingClientRect());
-        window.addEventListener('resize', updateRect);
-        updateRect();
-        return () => window.removeEventListener('resize', updateRect);
-    }, [nodeRef]);
-    return rect;
-};
-
 export const Zone = forwardRef((
-    { name, contents, faceDown, enablePreview, drag, onCardDragStart, onCardDragStop }: ZoneProps,
+    {
+        name, contents, classesToAppend, faceDown, action,
+        onCardDrag, onCardDragStop, onCardMouseEnter, onCardMouseLeave
+    }: ZoneProps,
     ref: ForwardedRef<HTMLDivElement>
 ) => {
-    const isTargetZone = drag?.targetZone === name;
-    const classes = 'zone' + (isTargetZone ? ' highlight' : '');
+    const isSourceZone = action?.sourceZone === name;
+    const isTargetZone = action?.targetZone === name;
+    const className = (
+        'gutter zone' + 
+        (classesToAppend ? ' ' + classesToAppend : '') + 
+        (isTargetZone ? ' highlight' : '')
+    );
 
-    const createCard = (zoneCard: ZoneCardInfo) => {
-        return <Card
-            key={zoneCard.card.id}
-            info={zoneCard}
-            faceDown={faceDown}
-            enablePreview={enablePreview}
-            onDragStart={drag => onCardDragStart({ ...drag, sourceZone: name })}
-            onDragStop={onCardDragStop}
-        />;
-    }
+    const isCardDragging = (card: CardInfo) => card.id === action?.card.id;
+    const updatedContents = contents.map(zc => ({
+        ...zc, zIndex: isCardDragging(zc.card) ? Number.MAX_SAFE_INTEGER : zc.zIndex
+    }));
 
+    const fireAction = (action: CardActionInfo, handler?: CardActionEventHandler) => (
+        handler ? handler({ ...action, sourceZone: name }) : true
+    );
     return (
         <div
             ref={ref}
             id={name}
-            className={classes}
+            className={className}
             data-name={name.toUpperCase()}
+            style={{ zIndex: isSourceZone ? 1 : 0 }}
         >
-            {contents.map(createCard)}
+            {updatedContents.map(zc => (
+                <Card
+                    key={zc.card.id}
+                    zoneCard={zc}
+                    faceDown={faceDown}
+                    onDrag={action => fireAction(action, onCardDrag)}
+                    onDragStop={action => fireAction(action, onCardDragStop)}
+                    onMouseEnter={action => fireAction(action, onCardMouseEnter)}
+                    onMouseLeave={action => fireAction(action, onCardMouseLeave)}
+                />
+            ))}
         </div>
     );
 });

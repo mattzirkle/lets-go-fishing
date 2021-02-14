@@ -6,21 +6,29 @@
     margin: 6px;
 }
 
-.zone {
+.gutter {
+    min-width: var(--card-width);
+    min-height: var(--card-height);
     background-color: var(--nord1);
-    padding: 10px;
+    padding: var(--zone-padding);
+    border: var(--zone-border-width) solid transparent;
+    box-shadow: 0 0 0 var(--zone-border-width) transparent;
     border-radius: 3px;
-    font-family: 'Bahnschrift Condensed', 'Arial Narrow Bold', sans-serif;
-    font-size: 60px;
     position: relative;
 }
 
-.zone.highlight {
-    background-color: rgba(0, 0, 0, 0.5);
-    transition: background-color 0.2s;
+.zone {
+    font-family: 'Bahnschrift Condensed', 'Arial Narrow Bold', sans-serif;
+    font-size: 60px;
+    writing-mode: vertical-lr;
 }
 
-.topPanel {
+.zone.highlight {
+    box-shadow: 0 0 0 var(--zone-border-width) var(--nord3);
+    transition: box-shadow 0.15s;
+}
+
+.toolbar {
     box-shadow: 0 1px 8px 0 rgba(0,0,0,0.5);
 }
 
@@ -29,26 +37,22 @@
     column-gap: 6px;
 }
 
-.zone:empty::after {
+.zone::after {
     content: attr(data-name);
     color: var(--nord3);
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     text-align: center;
 }
 
-#hand {
+#hand, #battlefield {
     flex: 1;
-    height: var(--card-height);
 }
 
-#library {
-    width: var(--card-width);
-    height: var(--card-height);
-}
-
-#battlefield {
+.topPanel {
+    display: flex;
+    column-gap: 6px;
     flex: 1;
 }
